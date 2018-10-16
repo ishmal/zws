@@ -56,13 +56,13 @@ export class Tuner {
 	 * @param par parent instance of a Digi api
 	 * @param canvas {HTMLCanvasElement}
 	 */
-	constructor(par, canvas) {
+	constructor(par) {
 		window.requestAnimationFrame = window.requestAnimationFrame
 			|| window.msRequestAnimationFrame;
 		//  || window.mozRequestAnimationFrame
 		//  || window.webkitRequestAnimationFrame;
-		super();
 		this.par = par;
+		const canvas = document.getElementById("tuner");
 		this.canvas = canvas;
 		this.MAX_FREQ = par.sampleRate * 0.5;
 		this.draggable = null;
