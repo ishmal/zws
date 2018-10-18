@@ -23,6 +23,7 @@ import { Tuner } from "./tuner";
 export class Zws {
 	constructor() {
 		this.audioInput = AudioFactory.getInput(this);
+		this.sampleRate = this.audioInput.sampleRate;
 		this.audioOutput = AudioFactory.getOutput(this);
 		this.tuner = new Tuner(this);
 	}

@@ -45,6 +45,7 @@ class Draggable {
 	end(p) {}
 }
 
+const WATERFALL_ROWS = 128;
 
 /**
  * Provides a Waterfall display and tuning interactivity
@@ -66,25 +67,16 @@ export class Tuner {
 		this.canvas = canvas;
 		this.MAX_FREQ = par.sampleRate * 0.5;
 		this.draggable = null;
-		this.thFrequency = 1000;
+		this.theFrequency = 1000;
 		this.indices = null;
 		this.width = 100;
 		this.height = 100;
 		this.ctx = null;
-		this.imgData = null;
-		this.imglen = null;
-		this.buf8 = null;
-		this.rowsize = null;
-		this.lastRow = null;
+		this.waterfallData = [];
 		this.scopeData = [];
 		this.tuningRate = 1.0;
-
-		this.setupBitmap();
-
 		canvas.setAttribute("tabindex", "1");
-
 		this.palette = this.makePalette();
-
 		this.setupEvents(canvas);
 	}
 
@@ -104,62 +96,26 @@ export class Tuner {
 		return this.theFrequency;
 	}
 
-	/**
-	 * @param targetsize {number}
-	 * @param sourcesize {number}
-	 * @return {number[]}
-	 */
-	createIndices(targetsize, sourcesize) {
-		const xs = new Array(targetsize);
-		const ratio = sourcesize / targetsize;
-		for (let i = 0; i < targetsize; i++) {
-			xs[i] = Math.floor(i * ratio);
-		}
-		return xs;
-	}
-
-
-	setupBitmap() {
-		const { canvas } = this;
-		this.width = canvas.width;
-		this.height = canvas.height;
-		// this.par.status("resize w:" + this.width + "  h:" + this.height);
-		this.indices = this.createIndices(this.width, BINS);
-		this.ctx = canvas.getContext("2d");
-		this.imgData = this.ctx.createImageData(this.width, this.height);
-		const { imgData } = this;
-		const imglen = this.imglen = imgData.data.length;
-		const buf8 = this.buf8 = imgData.data;
-		for (let i = 0; i < imglen;) {
-			buf8[i++] = 0;
-			buf8[i++] = 0;
-			buf8[i++] = 0;
-			buf8[i++] = 255;
-		}
-		// imgData.data.set(buf8);
-		this.ctx.putImageData(imgData, 0, 0);
-		this.rowsize = imglen / this.height;
-		this.lastRow = imglen - this.rowsize;
-	}
-
 	// ####################################################################
 	// #   MOUSE and KEY EVENTS
 	// ####################################################################
 
+	/**
+	 * Set up interactivity events
+	 * @param {Element} canvas 
+	 */
 	setupEvents(canvas) {
-		// hate to use "self" here, but it"s a safe way
-		const self = this;
 
-		const FINE_INCR = 2;
+		let didDrag = false;
 
-		function mouseFreq(event) {
+		const mouseFreq = (event) => {
 			const pt = getMousePos(canvas, event);
 			const x = pt.x;
-			const freq = self.MAX_FREQ * pt.x / self.width;
-			self.frequency = freq;
-		}
+			const freq = this.MAX_FREQ * pt.x / this.width;
+			this.frequency = freq;
+		};
 
-		function getMousePos(cnv, evt) {
+		const getMousePos = (cnv, evt) => {
 			const touches = evt.touches;
 			const cx = (touches) ? touches[0].clientX : evt.clientX;
 			const cy = (touches) ? touches[0].clientY : evt.clientY;
@@ -170,51 +126,72 @@ export class Tuner {
 				x,
 				y,
 			};
-		}
+		};
 
-		let didDrag = false;
-
-		function onClick(event) {
+		const onClick = (event) => {
 			if (!didDrag) {
 				mouseFreq(event);
 			}
-			self.draggable = null;
+			this.draggable = null;
 			event.preventDefault();
-		}
+		};
 
-		function onMouseDown(event) {
+		/**
+		 * Mouse down - move - up make a drag
+		 * @param {object} event 
+		 */
+		const onMouseDown = (event) => {
 			didDrag = false;
 			const pos = getMousePos(canvas, event);
-			const freq0 = self.frequency;
+			const freq0 = this.frequency;
 			const d = new Draggable(pos);
 			d.drag = (p) => {
 				let dx = p.x - d.pos0.x;
-				dx *= self.tuningRate; // cool!
-				const freqDiff = self.MAX_FREQ * dx / self.width;
-				self.frequency = freq0 + freqDiff;
+				dx *= this.tuningRate; // cool!
+				const freqDiff = this.MAX_FREQ * dx / this.width;
+				this.frequency = freq0 + freqDiff;
 			};
-			self.draggable = d;
+			this.draggable = d;
 			event.preventDefault();
-		}
+		};
 
-		function onMouseUp(event) {
-			if (self.draggable) {
+		const onMouseUp = (event) => {
+			if (this.draggable) {
 				const pos = getMousePos(canvas, event);
-				self.draggable.end(pos);
+				this.draggable.end(pos);
 			}
-			self.draggable = null;
+			this.draggable = null;
 			event.preventDefault();
-		}
+		};
 
-		function onMouseMove(event) {
-			const d = self.draggable;
+		const onMouseMove = (event) => {
+			const d = this.draggable;
 			if (d) {
 				didDrag = true;
 				const pos = getMousePos(canvas, event);
 				d.drag(pos);
 			}
 			event.preventDefault();
-		}
+		};
+
+		// fine tuning, + or - one hertz
+		const onKeyDown = (evt) => {
+			const key = evt.which;
+			if (key === 37 || key === 40) {
+				this.frequency += 1;
+			} else if (key === 38 || key === 39) {
+				this.frequency -= 1;
+			}
+			evt.preventDefault();
+			return false;
+		};
+
+		const handleWheel = (evt) => {
+			const delta = (evt.detail < 0 || evt.wheelDelta > 0) ? 1 : -1;
+			this.frequency += (delta * 1); // or other increments here
+			evt.preventDefault();
+			return false;
+		};
 
 		canvas.onclick = onClick;
 		canvas.onmousedown = onMouseDown;
@@ -223,27 +200,8 @@ export class Tuner {
 		canvas.ontouchstart = onMouseDown;
 		canvas.ontouchend = onMouseUp;
 		canvas.ontouchmove = onMouseMove;
-
-		// fine tuning, + or - one hertz
-		canvas.onkeydown = (evt) => {
-			const key = evt.which;
-			if (key === 37 || key === 40) {
-				self.frequency += 1;
-			} else if (key === 38 || key === 39) {
-				self.frequency -= 1;
-			}
-			evt.preventDefault();
-			return false;
-		};
-
-		function handleWheel(evt) {
-			const delta = (evt.detail < 0 || evt.wheelDelta > 0) ? 1 : -1;
-			self.frequency += (delta * 1); // or other increments here
-			evt.preventDefault();
-			return false;
-		}
-
 		canvas.onmousewheel = handleWheel;
+		onkeydown = onKeyDown;
 		canvas.addEventListener("DOMMouseScroll", handleWheel, false);
 	}
 
@@ -251,72 +209,24 @@ export class Tuner {
 	// #  R E N D E R I N G
 	// ####################################################################
 
-	/**
-	 * Make a palette. tweak this often
-	 * TODO:  consider using an HSV heat map
-	 * @return {number[]}
-	 */
 	makePalette() {
-		const xs = [];
-		for (let i = 0; i < 256; i++) {
-			const r = (i < 170) ? 0 : (i - 170) * 3;
-			const g = (i < 85) ? 0 : (i < 170) ? (i - 85) * 3 : 255;
-			const b = (i < 85) ? i * 3 : 255;
-			const col = [r, g, b, 255];
-			xs[i] = col;
+		const palette = [];
+		const red = [0, 255];
+		const green = [0, 255];
+		const blue = [25, 255];
+		const rdelta = (red[1] - red[0]) / 256;
+		const gdelta = (green[1] - green[0]) / 256;
+		const bdelta = (blue[1] - blue[0]) / 256;
+		let r = red[0];
+		let g = green[0];
+		let b = blue[0];
+		for (let i = 0; i < 256 ; i++) {
+			palette[i] = `rgb(${r},${g},${b})`;
+			r += rdelta;
+			g += gdelta;
+			b += bdelta;
 		}
-		return xs;
-	}
-
-	/**
-	 * Alternate palette
-	 * @return {number[]}
-	 */
-	makePalette2() {
-		const size = 65536;
-		const xs = [];
-		const range1 = {
-			start: 0,
-			end: size / 2,
-			r0: 0.0,
-			g0: 0.0,
-			b0: 0.0,
-			r1: 0.0,
-			g1: 255,
-			b1: 255,
-		};
-		const range2 = {
-			start: size / 2 + 1,
-			end: size - 1,
-			r0: 0,
-			g0: 255,
-			b0: 255,
-			r1: 255,
-			g1: 0,
-			b1: 255,
-		};
-		const ranges = [range1, range2];
-
-		for (let i = 0; i < size; i++) {
-			xs[i] = [0, 0, 0];
-		}
-		ranges.forEach((r) => {
-			const d = 1.0 / (r.end - r.start + 1);
-			let tween = 0;
-			const rr = r.r1 - r.r0;
-			const gr = r.g1 - r.g0;
-			const br = r.b1 - r.b0;
-			for (let i = r.start; i <= r.end; i++) {
-				xs[i] = [
-					r.r0 + rr * tween,
-					r.g0 + gr * tween,
-					r.b0 + br * tween,
-				];
-				tween += d;
-			}
-		});
-
-		return xs;
+		return palette;
 	}
 
 
@@ -341,59 +251,34 @@ export class Tuner {
 
 
 	drawWaterfall(data) {
-		const buf8 = this.buf8;
-		const rowsize = this.rowsize;
-		const imglen = this.imglen;
-		const imgData = this.imgData;
-		const width = this.width;
-		const indices = this.indices;
-		const palette = this.palette;
-
-		buf8.set(buf8.subarray(rowsize, imglen)); // <-cool, if this works
-		// trace("data:" + data[50]);
-
-		let idx = this.lastRow;
-		for (let x = 0; x < width; x++) {
-			const v = data[indices[x]];
-			const pix = palette[v];
-			// if (x==50)trace("p:" + p + "  pix:" + pix.toString(16));
-			buf8[idx++] = pix[0];
-			buf8[idx++] = pix[1];
-			buf8[idx++] = pix[2];
-			buf8[idx++] = 255;
-		}
-		imgData.data.set(buf8);
-		this.ctx.putImageData(imgData, 0, 0);
-	}
-
-	drawWaterfall2(data) {
-		const width = this.width;
-		const lastRow = this.lastRow;
-		const palette = this.palette;
-		const buf8 = this.buf8;
-		const rowsize = this.rowsize;
-		const imgData = this.imgData;
-		const indices = this.indices;
-		const imglen = this.imglen;
 		const ctx = this.ctx;
+		const width = this.width;
+		const height = this.height;
+		const data = this.waterfallData;
+		const palette = this.palette;
+		const pixHeight = this.height / WATERFALL_ROWS;
+		const pixWidth = this.width / data[0].length;
 
-		buf8.set(buf8.subarray(rowsize, imglen)); // scroll up one row
-		let idx = lastRow;
-		const log = Math.log;
-		for (let x = 0; x < width; x++) {
-			const v = data[indices[x]];
-			// if (x==50) trace("v:" + v);
-			const p = log(1.0 + v) * 30;
-			// if (x==50)trace("x:" + x + " p:" + p);
-			const pix = palette[p & 255];
-			// if (x==50)trace("p:" + p + "  pix:" + pix.toString(16));
-			buf8[idx++] = pix[0];
-			buf8[idx++] = pix[1];
-			buf8[idx++] = pix[2];
-			buf8[idx++] = pix[3];
+		// background
+		ctx.fillStyle = "black";
+		ctx.fill(0, 0, width, height);
+
+		// foreground
+		const y = 0;
+		for (let i = 0, len = data.length; i < len ; i++) {
+			const row = data[i];
+			const x = 0;
+			for (let j = 0, rlen = row.length; j < rlen; j++) {
+				const pix = row[j];
+				const p = Math.min(pix, 255);
+				ctx.strokeStyle = palette[p];
+				ctx.moveTo(x, y);
+				ctx.lineTo(x, y + pHeight);
+				ctx.stroke();
+				x += pixWidth;
+			}
+			y += pixHeight;
 		}
-		imgData.data.set(buf8);
-		ctx.putImageData(imgData, 0, 0);
 	}
 
 
@@ -504,7 +389,7 @@ export class Tuner {
 	/**
 	 * @param data {Uint8Array}
 	 */
-	updateData(data) {
+	redraw() {
 		this.drawWaterfall(data);
 		// this.drawSpectrum(data);
 		this.drawTuner();
@@ -519,8 +404,13 @@ export class Tuner {
 	 * @param data {Uint8Array}
 	 */
 	update(data) {
+		const arr = this.waterfallData;
+		arr.push(data);
+		if (arr.length > WATERFALL_ROWS) {
+			arr.shift();
+		}
 		requestAnimationFrame(() => {
-			this.updateData(data);
+			this.redraw();
 		});
 	}
 } // Tuner
