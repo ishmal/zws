@@ -66,7 +66,7 @@ export class Tuner {
 		this.canvas = canvas;
 		this.MAX_FREQ = par.sampleRate * 0.5;
 		this.draggable = null;
-		this.frequency = 1000;
+		this.thFrequency = 1000;
 		this.indices = null;
 		this.width = 100;
 		this.height = 100;
@@ -93,7 +93,7 @@ export class Tuner {
 	 * @param frequency {number}
 	 */
 	set frequency(freq) {
-		this.frequency = freq;
+		this.theFrequency = freq;
 		this.par.frequency = freq;
 	}
 
@@ -101,7 +101,7 @@ export class Tuner {
 	 * @return {number}
 	 */
 	get frequency() {
-		return this.frequency;
+		return this.theFrequency;
 	}
 
 	/**
