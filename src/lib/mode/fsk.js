@@ -18,9 +18,8 @@
  */
 /* jslint node: true */
 
-import {Mode} from "./mode";
-import {Digi} from "../zws";
-import {Filter, Biquad, FIR} from "../filter";
+import { FIR } from "../filter";
+import { Mode } from "./mode";
 
 const SSIZE = 200;
 
@@ -31,82 +30,61 @@ const SSIZE = 200;
 export class FskBase extends Mode {
 
     /**
-    _shift: number;
-    _inverted: boolean;
-    _samplesSinceChange: number;
-    _lastBit: boolean;
-    _loHys: number;
-    _hiHys: number;
-    _bit: boolean;
-    _lastr: number;
-    _lasti: number;
-    _bitsum: number;
-    _scopeData: number[][];
-    _scnt: number;
-    _sx: number;
-    _sf: Filter;
-    _mf: Filter;
-    _dataFilter: Filter;
-    _symbollen: number;
-    _halfsym: number;
-    */
-
-    /**
      * @param par instance of parent Digi
      */
     constructor(par) {
         super(par);
-        this._shift = 170.0;
+        this.shift = 170.0;
         this.inverted = false;
         this.rate = 45.0;
-        this._samplesSinceChange = 0;
-        this._lastBit = false;
+        this.samplesSinceChange = 0;
+        this.lastBit = false;
 
         // receive
-        this._loHys = -1.0;
-        this._hiHys = 1.0;
-        this._bit = false;
-        this._lastr = 0;
-        this._lasti = 0;
-        this._bitsum = 0;
+        this.loHys = -1.0;
+        this.hiHys = 1.0;
+        this.bit = false;
+        this.lastr = 0;
+        this.lasti = 0;
+        this.bitsum = 0;
 
         // scope
-        this._scopeData = new Array(SSIZE);
-        this._scnt = 0;
-        this._sx = -1;
+        this.scopeData = new Array(SSIZE);
+        this.scnt = 0;
+        this.sx = -1;
     }
 
     get shift() {
-        return this._shift;
+        return this.shift;
     }
 
     set shift(v) {
-        this._shift = v;
+        this.shift = v;
         this.adjust();
     }
 
     get bandwidth() {
-        return this._shift;
+        return this.shift;
     }
 
     /**
-     * @see Mode._setRate for an explanation of this
+     * @see Mode.setRate for an explanation of this
      * @param v {number}
      */
-    _setRate(v) {
-        super._setRate(v);
+    setRate(v) {
+        super.setRate(v);
         this.adjust();
     }
 
     adjust() {
-        this._sf = FIR.bandpass(13, -0.75 * this.shift, -0.25 * this.shift, this.par.sampleRate);
-        this._mf = FIR.bandpass(13, 0.25 * this.shift, 0.75 * this.shift, this.par.sampleRate);
+        this.sf = FIR.bandpass(13, -0.75 * this.shift, -0.25 * this.shift, this.par.sampleRate);
+        this.mf = FIR.bandpass(13, 0.25 * this.shift, 0.75 * this.shift, this.par.sampleRate);
         // dataFilter = FIR.boxcar((self.samplesPerSymbol * 0.7)|0 );
-        this._dataFilter = FIR.raisedcosine(13, 0.5, this.rate, this.par.sampleRate);
+        this.dataFilter = FIR.raisedcosine(13, 0.5, this.rate, this.par.sampleRate);
         // dataFilter = FIR.lowpass(13, this.rate * 0.5, this.sampleRate);
         // dataFilter = Biquad.lowPass(this.rate * 0.5, this.sampleRate);
-        this._symbollen = Math.round(this.samplesPerSymbol);
-        this._halfsym = this._symbollen >> 1;
+        this.symbollen = Math.round(this.samplesPerSymbol);
+        this.halfsym = this.symbollen >> 1;
     }
 
     /**
@@ -116,37 +94,37 @@ export class FskBase extends Mode {
      * the signal.  This is called a polar discrminator.
      */
     receive(isample) {
-        let lastr = this._lastr;
-        let lasti = this._lasti;
+        let lastr = this.lastr;
+        let lasti = this.lasti;
 
-        let space = this._sf.updatex(isample);
-        let mark = this._mf.updatex(isample);
+        let space = this.sf.updatex(isample);
+        let mark = this.mf.updatex(isample);
         let r = space.r + mark.r;
         let i = space.i + mark.i;
         let x = r * lastr - i * lasti;
         let y = r * lasti + i * lastr;
-        this._lastr = r; // save the conjugate
-        this._lasti = -i;
+        this.lastr = r; // save the conjugate
+        this.lasti = -i;
         let angle = Math.atan2(y, x);  // arg
         let comp = (angle > 0) ? -10.0 : 10.0;
-        let sig = this._dataFilter.update(comp);
+        let sig = this.dataFilter.update(comp);
         // console.log("sig:" + sig + "  comp:" + comp)
 
         this.scopeOut(sig);
 
-        let bit = this._bit;
+        let bit = this.bit;
 
         // trace("sig:" + sig)
-        if (sig > this._hiHys) {
+        if (sig > this.hiHys) {
             bit = false;
-        } else if (sig < this._loHys) {
+        } else if (sig < this.loHys) {
             bit = true;
         }
 
-        bit = bit !== this._inverted; // user-settable
+        bit = bit !== this.inverted; // user-settable
 
         this.processBit(bit);
-        this._bit = bit;
+        this.bit = bit;
     }
 
 
@@ -163,9 +141,9 @@ export class FskBase extends Mode {
      * of where a symbol is expected to be.
      */
     isMiddleBit(bit) {
-        this._samplesSinceChange = (bit === this._lastBit) ? this._samplesSinceChange + 1 : 0;
-        this._lastBit = bit;
-        let middleBit = (this._samplesSinceChange % this._symbollen === this._halfsym);
+        this.samplesSinceChange = (bit === this.lastBit) ? this.samplesSinceChange + 1 : 0;
+        this.lastBit = bit;
+        let middleBit = (this.samplesSinceChange % this.symbollen === this.halfsym);
         return middleBit;
     }
 
@@ -173,13 +151,13 @@ export class FskBase extends Mode {
     scopeOut(v) {
         let sign = (v > 0) ? 1 : -1;
         let scalar = Math.log(Math.abs(v) + 1) * 0.25;
-        this._scopeData[this._scnt++] = [this._sx, sign * scalar];
-        this._sx += 0.01;
-        if (this._scnt >= SSIZE) {
-            this._scnt = 0;
-            this._sx = -1;
-            this.par.showScope(this._scopeData);
-            this._scopeData = new Array(SSIZE);
+        this.scopeData[this.scnt++] = [this.sx, sign * scalar];
+        this.sx += 0.01;
+        if (this.scnt >= SSIZE) {
+            this.scnt = 0;
+            this.sx = -1;
+            this.par.showScope(this.scopeData);
+            this.scopeData = new Array(SSIZE);
         }
     }
 

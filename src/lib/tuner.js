@@ -107,7 +107,7 @@ export class Tuner {
 	 */
 	setupEvents(canvas) {
 
-		let didDrag = false;
+		const didDrag = false;
 
 		const mouseFreq = (event) => {
 			const pt = getMousePos(canvas, event);
@@ -147,7 +147,7 @@ export class Tuner {
 			const freq0 = this.frequency;
 			const d = new Draggable(pos);
 			d.drag = (p) => {
-				let dx = p.x - d.pos0.x;
+				const dx = p.x - d.pos0.x;
 				dx *= this.tuningRate; // cool!
 				const freqDiff = this.MAX_FREQ * dx / this.width;
 				this.frequency = freq0 + freqDiff;
@@ -218,9 +218,9 @@ export class Tuner {
 		const rdelta = (red[1] - red[0]) / 256;
 		const gdelta = (green[1] - green[0]) / 256;
 		const bdelta = (blue[1] - blue[0]) / 256;
-		let r = red[0];
-		let g = green[0];
-		let b = blue[0];
+		const r = red[0];
+		const g = green[0];
+		const b = blue[0];
 		for (let i = 0; i < 256 ; i++) {
 			palette[i] = `rgb(${r},${g},${b})`;
 			r += rdelta;
@@ -265,10 +265,10 @@ export class Tuner {
 		ctx.fillRect(0, 0, width, height);
 
 		// foreground
-		let y = 0;
+		const y = 0;
 		for (let i = 0, len = data.length; i < len ; i++) {
 			const row = data[i];
-			let x = 0;
+			const x = 0;
 			for (let j = 0, rlen = row.length; j < rlen; j++) {
 				const pix = row[j];
 				const p = Math.min(pix, 255);

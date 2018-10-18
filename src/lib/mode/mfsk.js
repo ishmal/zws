@@ -17,10 +17,8 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import {Mode} from "./mode";
-import {Filter, FIR, Biquad} from "../filter";
-import {Complex, ComplexOps} from "../complex";
-import {Properties} from "./mode";
+import { Biquad } from "../filter";
+import { Mode } from "./mode";
 
 /**
  * This contains the definitions of the bit patterns for the Varicode set
@@ -201,12 +199,6 @@ function printTables() {
 }
 
 /**
-export interface Timer {
-    update(r: number, i: number, f: (r: number, i: number) => void);
-}
-*/
-
-/**
  * @param samplesPerSymbol {number}
  * @return {Timer}
  */
@@ -260,55 +252,33 @@ const LOG = Math.log;
  */
 export class MfskMode extends Mode {
 
-    /**
-    _ilp: Filter;
-    _qlp: Filter;
-    _symbollen: number;
-    _halfSym: number;
-    _lastSign: number;
-    _samples: number;
-    _scopedata: number[][];
-    _sctr: number;
-    _ssctr: number;
-    _qpskMode: boolean;
-    _code: number;
-    _lastv: number;
-    _count: number;
-    _lastBit: boolean;
-    _txBuf: number[];
-    _txPtr: number;
-    _txPhase: number[][];
-    _txQueue: number[][];
-    _timer: Timer = null;
-    */
-
     constructor(par) {
         super(par);
-        this._ilp = null;
-        this._qlp = null;
-        this._symbollen = 0;
-        this._halfSym = 0;
+        this.ilp = null;
+        this.qlp = null;
+        this.symbollen = 0;
+        this.halfSym = 0;
 
         // receive
-        this._lastSign = -1;
-        this._samples = 0;
+        this.lastSign = -1;
+        this.samples = 0;
 
         // scope
-        this._scopedata = new Array(SSIZE);
-        this._sctr = 0;
-        this._ssctr = 0;
+        this.scopedata = new Array(SSIZE);
+        this.sctr = 0;
+        this.ssctr = 0;
 
-        this._qpskMode = false;
+        this.qpskMode = false;
 
-        this._code = 0;
-        this._lastv = 0.0;
-        this._count = 0;
-        this._lastBit = false;
+        this.code = 0;
+        this.lastv = 0.0;
+        this.count = 0;
+        this.lastBit = false;
 
         // transmit
-        this._txBuf = [];
-        this._txPtr = 0;
-        this._txQueue = [];
+        this.txBuf = [];
+        this.txPtr = 0;
+        this.txQueue = [];
 
         this.rate = 31.25;
 
@@ -340,10 +310,10 @@ export class MfskMode extends Mode {
                     name: "qpsk",
                     type: "boolean",
                     get value() {
-                        return that._qpskMode;
+                        return that.qpskMode;
                     },
                     set value(v) {
-                        that._qpskMode = v;
+                        that.qpskMode = v;
                     }
                 }
             ]
@@ -356,35 +326,35 @@ export class MfskMode extends Mode {
     }
 
 
-    _setRate(v) {
-        super._setRate(v);
-        this._ilp = Biquad.lowPass(v * 0.707, this.par.sampleRate);
-        this._qlp = Biquad.lowPass(v * 0.707, this.par.sampleRate);
-        this._symbollen = Math.round(this.samplesPerSymbol);
-        this._halfSym = Math.round(this.samplesPerSymbol * 0.5);
-        this._timer = createEarlyLate(this._symbollen);
+    setRate(v) {
+        super.setRate(v);
+        this.ilp = Biquad.lowPass(v * 0.707, this.par.sampleRate);
+        this.qlp = Biquad.lowPass(v * 0.707, this.par.sampleRate);
+        this.symbollen = Math.round(this.samplesPerSymbol);
+        this.halfSym = Math.round(this.samplesPerSymbol * 0.5);
+        this.timer = createEarlyLate(this.symbollen);
         this.setupTransmit();
     }
 
     receive(z) {
-        let r = this._ilp.update(z.r);
-        let i = this._qlp.update(z.i);
+        let r = this.ilp.update(z.r);
+        let i = this.qlp.update(z.i);
         this.scopeOut(r, i);
-        this._timer.update(r, i, (a, b) => {
+        this.timer.update(r, i, (a, b) => {
             this.processSymbol(a, b);
         });
     }
 
 
     scopeOut(i, q) {
-        if (!(++this._ssctr & 1)) {
+        if (!(++this.ssctr & 1)) {
             return; // skip items
         }
-        this._scopedata[this._sctr++] = [LOG(i + 1) * 30.0, LOG(q + 1) * 30.0];
-        if (this._sctr >= SSIZE) {
-            this.par.showScope(this._scopedata);
-            this._sctr = 0;
-            this._scopedata = new Array(SSIZE);
+        this.scopedata[this.sctr++] = [LOG(i + 1) * 30.0, LOG(q + 1) * 30.0];
+        if (this.sctr >= SSIZE) {
+            this.par.showScope(this.scopedata);
+            this.sctr = 0;
+            this.scopedata = new Array(SSIZE);
         }
     }
 
@@ -419,30 +389,30 @@ export class MfskMode extends Mode {
 
         let vn = Math.atan2(q, i);
 
-        if (this._qpskMode) {
+        if (this.qpskMode) {
             /*
-            dv = this.angleDiff(vn, this._lastv);
+            dv = this.angleDiff(vn, this.lastv);
             d00 = this.distance(dv, Math.PI);
             d01 = this.distance(dv, HALFPI);
             d10 = this.distance(dv, -HALFPI);
             d11 = this.distance(dv, 0.0);
             let bm = [d00, d01, d10, d11];
             // println("%6.3f %6.3f %6.3f  :  %3d %3d %3d %3d".format(lastv, vn, dv, d00, d01, d10, d11))
-            let bits = null;  //  FIXME!!  this._decoder.decodeOne(bm);
+            let bits = null;  //  FIXME!!  this.decoder.decodeOne(bm);
             let len = bits.length;
             for (let idx = 0; idx < len; idx++) {
                 this.processBit(bits[idx]);
             }
-            this._lastv = vn;
+            this.lastv = vn;
             */
         } else { // bpsk
             /**/
-            dv = this.angleDiff(vn, this._lastv);
+            dv = this.angleDiff(vn, this.lastv);
             d00 = this.distance(dv, Math.PI);
             d11 = this.distance(dv, 0.0);
             // println("%6.3f %6.3f %6.3f  :  %3d %3d".format(lastv, vn, dv, d00, d11))
             let bit = d11 < d00;
-            this._lastv = vn;
+            this.lastv = vn;
             /**/
             this.processBit(bit);
         }
@@ -451,11 +421,11 @@ export class MfskMode extends Mode {
 
     processBit(bit) {
         // println("bit: " + bit)
-        if ((!bit) && (!this._lastBit)) {
-            this._code >>= 1;   // remove trailing 0
-            if (this._code !== 0) {
+        if ((!bit) && (!this.lastBit)) {
+            this.code >>= 1;   // remove trailing 0
+            if (this.code !== 0) {
                 // println("code:" + Varicode.toString(code))
-                let ascii = decodeTable[this._code];
+                let ascii = decodeTable[this.code];
                 if (ascii) {
                     let chr = ascii;
                     if (chr === 10 || chr === 13) {
@@ -463,17 +433,17 @@ export class MfskMode extends Mode {
                     } else {
                         this.par.putText(String.fromCharCode(chr));
                     }
-                    this._code = 0;
+                    this.code = 0;
                 }
             }
-            this._code = 0;
+            this.code = 0;
         } else {
-            this._code <<= 1;
+            this.code <<= 1;
             if (bit) {
-                this._code += 1;
+                this.code += 1;
             }
         }
-        this._lastBit = bit;
+        this.lastBit = bit;
     }
 
     // ###################
@@ -511,7 +481,7 @@ export class MfskMode extends Mode {
             txPhase[2][i] = { r: -1.0, i: 0.0 };
             txPhase[3][i] = { r: 0.0, i: -1.0 };
         }
-        this._txPhase = txPhase;
+        this.txPhase = txPhase;
     }
 
     txStart() {
@@ -531,20 +501,20 @@ export class MfskMode extends Mode {
             let blen = bits.length;
             for (let j = 0; j < blen; j++) {
                 let b = bits[j];
-                let buf = (b) ? this._txPhase[0] : this._txPhase[1];
-                this._txQueue.push(buf);
+                let buf = (b) ? this.txPhase[0] : this.txPhase[1];
+                this.txQueue.push(buf);
             }
         }
     }
 
 
     getTransmitData() {
-        let q = this._txQueue;
+        let q = this.txQueue;
         this.getTransmitText();
         if (q.length) {
             return q.shift();
         } else {
-            return this._txPhase[0];
+            return this.txPhase[0];
         }
     }
 

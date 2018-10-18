@@ -72,22 +72,6 @@ export class AudioInput {
 		return true;
 	}
 
-	/**
-	 * Called to resume input processing
-	 * @return boolean
-	 */
-	start() {
-		return true;
-	}
-
-	/**
-	 * Called to pause input processing
-	 * @return boolean
-	 */
-	stop() {
-		return true;
-	}
-
 }
 
 //######################################################################

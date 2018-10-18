@@ -22,11 +22,11 @@
  */
 
 function createCossinTable() {
-    let twopi = Math.PI * 2.0;
-    let two16 = 65536;
-    let delta = twopi / two16;
-    let xs = new Array(two16);
-    let angle = 0;
+    const twopi = Math.PI * 2.0;
+    const two16 = 65536;
+    const delta = twopi / two16;
+    const xs = new Array(two16);
+    const angle = 0;
 
     for (let idx = 0; idx < two16; idx++) {
         xs[idx] = { r: Math.cos(angle), i: Math.sin(angle) };
@@ -92,16 +92,16 @@ const TWO32 = 4294967296.0;
  */
 export function NcoCreate(frequency, sampleRate) {
 
-    let hzToInt = TWO32 / sampleRate;
-    let freq = 0 | 0;
-    let phase = 0 | 0;
-    let table = ncoTable;
-    let err = 0;
-    let maxErr = (50 * hzToInt) | 0;  // in hertz
+    const hzToInt = TWO32 / sampleRate;
+    const freq = 0 | 0;
+    const phase = 0 | 0;
+    const table = ncoTable;
+    const err = 0;
+    const maxErr = (50 * hzToInt) | 0;  // in hertz
     console.log("NCO maxErr: " + maxErr);
-    let minErr = -(50 * hzToInt) | 0;  // in hertz
+    const minErr = -(50 * hzToInt) | 0;  // in hertz
 
-    let newNco = new Nco();
+    const newNco = new Nco();
     newNco.setFrequency = function(v) {
         freq = (v * hzToInt) | 0;
     };
@@ -129,17 +129,17 @@ export function NcoCreate(frequency, sampleRate) {
      */
     newNco.mixNext = function(v) {
         phase += freq + err;
-        let cs = table[phase >>> 16];
+        const cs = table[phase >>> 16];
         return { r: v * cs.r, i: -v * cs.i };
     };
 
     newNco.mixBuf = function(inb) {
-        let len = inb.length;
-        let xs = new Array(len);
+        const len = inb.length;
+        const xs = new Array(len);
         for (let i=0 ; i < len ; i++) {
-          let v = inb[i];
+          const v = inb[i];
           phase += freq + err;
-          let cs = table[phase >>> 16];
+          const cs = table[phase >>> 16];
           xs[i] = v * cs.r - v * cs.i;
         }
         return xs;
@@ -156,12 +156,12 @@ export function NcoCreate(frequency, sampleRate) {
  */
 export function NcoCreateSimple(frequency, sampleRate) {
 
-    let hzToInt = TWO32 / sampleRate;
-    let freq = 0 | 0;
-    let phase = 0 | 0;
-    let table = ncoTable;
+    const hzToInt = TWO32 / sampleRate;
+    const freq = 0 | 0;
+    const phase = 0 | 0;
+    const table = ncoTable;
 
-    let nco = new Nco();
+    const nco = new Nco();
     nco.setFrequency = function(v) {
         freq = (v * hzToInt) | 0;
     };
@@ -174,17 +174,17 @@ export function NcoCreateSimple(frequency, sampleRate) {
 
     nco.mixNext = function(v) {
         phase += freq;
-        let cs = table[phase >>> 16];
+        const cs = table[phase >>> 16];
         return { r: v * cs.r, i: -v * cs.i };
     };
 
     nco.mixBuf = function(inb) {
-        let len = inb.length;
-        let xs = new Array(len);
+        const len = inb.length;
+        const xs = new Array(len);
         for (let i=0 ; i < len ; i++) {
-          let v = inb[i];
+          const v = inb[i];
           phase += freq;
-          let cs = table[phase >>> 16];
+          const cs = table[phase >>> 16];
           xs[i] = v * cs.r - v * cs.i;
         }
         return xs;

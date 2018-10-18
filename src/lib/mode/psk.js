@@ -17,10 +17,8 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import { Biquad } from "../filter";
 import { Mode } from "./mode";
-import { Filter, FIR, Biquad } from "../filter";
-import { Complex, ComplexOps } from "../complex";
-import { Properties } from "./mode";
 
 /**
  * This contains the definitions of the bit patterns for the Varicode set

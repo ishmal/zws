@@ -34,14 +34,14 @@ export interface Filter {
  */
 function newFilter13(coeffs) {
 
-    let c0 = coeffs[0], c1 = coeffs[1], c2 = coeffs[2], c3 = coeffs[3],
+    const c0 = coeffs[0], c1 = coeffs[1], c2 = coeffs[2], c3 = coeffs[3],
         c4 = coeffs[4], c5 = coeffs[5], c6 = coeffs[6], c7 = coeffs[7],
         c8 = coeffs[8], c9 = coeffs[9], c10 = coeffs[10], c11 = coeffs[11],
         c12 = coeffs[12];
 
-    let r0 = 0, r1 = 0, r2 = 0, r3 = 0, r4 = 0, r5 = 0, r6 = 0,
+    const r0 = 0, r1 = 0, r2 = 0, r3 = 0, r4 = 0, r5 = 0, r6 = 0,
         r7 = 0, r8 = 0, r9 = 0, r10 = 0, r11 = 0, r12 = 0;
-    let i0 = 0, i1 = 0, i2 = 0, i3 = 0, i4 = 0, i5 = 0, i6 = 0,
+    const i0 = 0, i1 = 0, i2 = 0, i3 = 0, i4 = 0, i5 = 0, i6 = 0,
         i7 = 0, i8 = 0, i9 = 0, i10 = 0, i11 = 0, i12 = 0;
 
     return {
@@ -107,34 +107,34 @@ function newFilter13(coeffs) {
  */
 function genCoeffs(size, window, func) {
     window = window || Window.hann;
-    let W = window(size);
-    let center = size * 0.5;
-    let sum = 0.0;
-    let arr = [];
-    for (let i = 0; i < size; i++) {
-        let v = func(i - center) * W[i];
+    const W = window(size);
+    const center = size * 0.5;
+    const sum = 0.0;
+    const arr = [];
+    for (const i = 0; i < size; i++) {
+        const v = func(i - center) * W[i];
         sum += v;
         arr[arr.length] = v;
     }
-    for (let j = 0; j < size; j++) {
+    for (const j = 0; j < size; j++) {
         arr[j] /= sum;
     }
     return arr;
 }
 
 function newFilter(size, coeffs) {
-    let sizeless = size - 1;
-    let dlr = new Array(size);
-    let dli = new Array(size);
-    let dptr = 0;
+    const sizeless = size - 1;
+    const dlr = new Array(size);
+    const dli = new Array(size);
+    const dptr = 0;
 
-    let filter = {
+    const filter = {
         update: function(v) {
             dlr[dptr++] = v;
             dptr %= size;
-            let ptr = dptr;
-            let sum = 0;
-            for (let i = 0; i < size; i++) {
+            const ptr = dptr;
+            const sum = 0;
+            for (const i = 0; i < size; i++) {
                 sum += coeffs[i] * dlr[ptr];
                 ptr = (ptr + sizeless) % size;
             }
@@ -145,10 +145,10 @@ function newFilter(size, coeffs) {
             dlr[dptr] = v.r;
             dli[dptr++] = v.i;
             dptr %= size;
-            let ptr = dptr;
-            let sumr = 0;
-            let sumi = 0;
-            for (let i = 0; i < size; i++) {
+            const ptr = dptr;
+            const sumr = 0;
+            const sumi = 0;
+            for (const i = 0; i < size; i++) {
                 sumr += coeffs[i] * dlr[ptr];
                 sumi += coeffs[i] * dli[ptr];
                 ptr = (ptr + sizeless) % size;
@@ -167,8 +167,8 @@ export class FIR {
      * @return {Filter}
      */
     static average(size, window) {
-        let omega = 1.0 / size;
-        let coeffs = genCoeffs(size, window, function(i) {
+        const omega = 1.0 / size;
+        const coeffs = genCoeffs(size, window, (i) => {
             return omega;
         });
         return (size === 13) ? newFilter13(coeffs) : newFilter(size, coeffs);
@@ -180,7 +180,7 @@ export class FIR {
      * @return {Filter}
      */
     static boxcar(size, window) {
-        let coeffs = genCoeffs(size, window, function(i) {
+        const coeffs = genCoeffs(size, window, (i) => {
             return 1.0;
         });
         return (size === 13) ? newFilter13(coeffs) : newFilter(size, coeffs);
@@ -194,8 +194,8 @@ export class FIR {
      * @return {Filter}
      */
     static lowpass(size, cutoffFreq, sampleRate, window) {
-        let omega = 2.0 * Math.PI * cutoffFreq / sampleRate;
-        let coeffs = genCoeffs(size, window, function(i) {
+        const omega = 2.0 * Math.PI * cutoffFreq / sampleRate;
+        const coeffs = genCoeffs(size, window, (i) => {
             return (i === 0) ? omega / Math.PI : Math.sin(omega * i) / (Math.PI * i);
         });
         return (size === 13) ? newFilter13(coeffs) : newFilter(size, coeffs);
@@ -209,8 +209,8 @@ export class FIR {
      * @return {Filter}
      */
     static highpass(size, cutoffFreq, sampleRate, window) {
-        let omega = 2.0 * Math.PI * cutoffFreq / sampleRate;
-        let coeffs = genCoeffs(size, window, function(i) {
+        const omega = 2.0 * Math.PI * cutoffFreq / sampleRate;
+        const coeffs = genCoeffs(size, window, (i) => {
             return (i === 0) ? 1.0 - omega / Math.PI : -Math.sin(omega * i) / (Math.PI * i);
         });
         return (size === 13) ? newFilter13(coeffs) : newFilter(size, coeffs);
@@ -225,9 +225,9 @@ export class FIR {
      * @return {Filter}
      */
     static bandpass(size, loCutoffFreq, hiCutoffFreq, sampleRate, window) {
-        let omega1 = 2.0 * Math.PI * hiCutoffFreq / sampleRate;
-        let omega2 = 2.0 * Math.PI * loCutoffFreq / sampleRate;
-        let coeffs = genCoeffs(size, window, function(i) {
+        const omega1 = 2.0 * Math.PI * hiCutoffFreq / sampleRate;
+        const omega2 = 2.0 * Math.PI * loCutoffFreq / sampleRate;
+        const coeffs = genCoeffs(size, window, (i) => {
             return (i === 0) ? (omega2 - omega1) / Math.PI :
                 (Math.sin(omega2 * i) - Math.sin(omega1 * i)) / (Math.PI * i);
         });
@@ -243,9 +243,9 @@ export class FIR {
      * @return {Filter}
      */
     static bandreject(size, loCutoffFreq, hiCutoffFreq, sampleRate, window) {
-        let omega1 = 2.0 * Math.PI * hiCutoffFreq / sampleRate;
-        let omega2 = 2.0 * Math.PI * loCutoffFreq / sampleRate;
-        let coeffs = genCoeffs(size, window, function(i) {
+        const omega1 = 2.0 * Math.PI * hiCutoffFreq / sampleRate;
+        const omega2 = 2.0 * Math.PI * loCutoffFreq / sampleRate;
+        const coeffs = genCoeffs(size, window, (i) => {
             return (i === 0) ? 1.0 - (omega2 - omega1) / Math.PI :
                 (Math.sin(omega1 * i) - Math.sin(omega2 * i)) / (Math.PI * i);
         });
@@ -261,13 +261,13 @@ export class FIR {
      * @return {Filter}
      */
     static raisedcosine(size, rolloff, symbolFreq, sampleRate, window) {
-        let T = sampleRate / symbolFreq;
-        let a = rolloff;
+        const T = sampleRate / symbolFreq;
+        const a = rolloff;
 
-        let coeffs = genCoeffs(size, window, (i) => {
-            let nT = i / T;
-            let anT = a * nT;
-            let c = 0;
+        const coeffs = genCoeffs(size, window, (i) => {
+            const nT = i / T;
+            const anT = a * nT;
+            const c = 0;
             if (i === 0) {
                 c = 1.0;
             } else if (anT === 0.5 || anT === -0.5) { // look at denominator below
@@ -303,14 +303,14 @@ export class FIR {
  */
 function BiquadFilter(b0, b1, b2, a1, a2) {
 
-    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
-    let x1r = 0, x2r = 0, y1r = 0, y2r = 0;
-    let x1i = 0, x2i = 0, y1i = 0, y2i = 0;
+    const x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    const x1r = 0, x2r = 0, y1r = 0, y2r = 0;
+    const x1i = 0, x2i = 0, y1i = 0, y2i = 0;
 
     return {
 
         update: function(x) {
-            let y = b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+            const y = b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
             x2 = x1;
             x1 = x;
             y2 = y1;
@@ -319,10 +319,10 @@ function BiquadFilter(b0, b1, b2, a1, a2) {
         },
 
         updatex: function(x) {
-            let r = x.r;
-            let i = x.i;
-            let yr = b0 * r + b1 * x1r + b2 * x2r - a1 * y1r - a2 * y2r;
-            let yi = b0 * i + b1 * x1i + b2 * x2i - a1 * y1i - a2 * y2i;
+            const r = x.r;
+            const i = x.i;
+            const yr = b0 * r + b1 * x1r + b2 * x2r - a1 * y1r - a2 * y2r;
+            const yi = b0 * i + b1 * x1i + b2 * x2i - a1 * y1i - a2 * y2i;
             x2r = x1r;
             x1r = r;
             x2i = x1i;
@@ -347,14 +347,14 @@ export class Biquad {
      */
     static lowPass(frequency, sampleRate, q) {
         q = typeof q !== "undefined" ? q : 0.707;
-        let freq = 2.0 * Math.PI * frequency / sampleRate;
-        let alpha = Math.sin(freq) / (2.0 * q);
-        let b0 = (1.0 - Math.cos(freq)) / 2.0;
-        let b1 = 1.0 - Math.cos(freq);
-        let b2 = (1.0 - Math.cos(freq)) / 2.0;
-        let a0 = 1.0 + alpha;
-        let a1 = -2.0 * Math.cos(freq);
-        let a2 = 1.0 - alpha;
+        const freq = 2.0 * Math.PI * frequency / sampleRate;
+        const alpha = Math.sin(freq) / (2.0 * q);
+        const b0 = (1.0 - Math.cos(freq)) / 2.0;
+        const b1 = 1.0 - Math.cos(freq);
+        const b2 = (1.0 - Math.cos(freq)) / 2.0;
+        const a0 = 1.0 + alpha;
+        const a1 = -2.0 * Math.cos(freq);
+        const a2 = 1.0 - alpha;
         return BiquadFilter(b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0);
     }
 
@@ -366,14 +366,14 @@ export class Biquad {
      */
     static highPass(frequency, sampleRate, q) {
         q = typeof q !== "undefined" ? q : 0.707;
-        let freq = 2.0 * Math.PI * frequency / sampleRate;
-        let alpha = Math.sin(freq) / (2.0 * q);
-        let b0 = (1.0 + Math.cos(freq)) / 2.0;
-        let b1 = -(1.0 + Math.cos(freq));
-        let b2 = (1.0 + Math.cos(freq)) / 2.0;
-        let a0 = 1.0 + alpha;
-        let a1 = -2.0 * Math.cos(freq);
-        let a2 = 1.0 - alpha;
+        const freq = 2.0 * Math.PI * frequency / sampleRate;
+        const alpha = Math.sin(freq) / (2.0 * q);
+        const b0 = (1.0 + Math.cos(freq)) / 2.0;
+        const b1 = -(1.0 + Math.cos(freq));
+        const b2 = (1.0 + Math.cos(freq)) / 2.0;
+        const a0 = 1.0 + alpha;
+        const a1 = -2.0 * Math.cos(freq);
+        const a2 = 1.0 - alpha;
         return BiquadFilter(b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0);
     }
 
@@ -385,14 +385,14 @@ export class Biquad {
      */
     static bandPass(frequency, sampleRate, q) {
         q = typeof q !== "undefined" ? q : 0.5;
-        let freq = 2.0 * Math.PI * frequency / sampleRate;
-        let alpha = Math.sin(freq) / (2.0 * q);
-        let b0 = Math.sin(freq) / 2.0;   //  = q*alpha
-        let b1 = 0.0;
-        let b2 = -Math.sin(freq) / 2.0;  //  = -q*alpha
-        let a0 = 1.0 + alpha;
-        let a1 = -2.0 * Math.cos(freq);
-        let a2 = 1.0 - alpha;
+        const freq = 2.0 * Math.PI * frequency / sampleRate;
+        const alpha = Math.sin(freq) / (2.0 * q);
+        const b0 = Math.sin(freq) / 2.0;   //  = q*alpha
+        const b1 = 0.0;
+        const b2 = -Math.sin(freq) / 2.0;  //  = -q*alpha
+        const a0 = 1.0 + alpha;
+        const a1 = -2.0 * Math.cos(freq);
+        const a2 = 1.0 - alpha;
         return BiquadFilter(b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0);
     }
 
@@ -404,14 +404,14 @@ export class Biquad {
      */
     static bandReject(frequency, sampleRate, q) {
         q = typeof q !== "undefined" ? q : 0.5;
-        let freq = 2.0 * Math.PI * frequency / sampleRate;
-        let alpha = Math.sin(freq) / (2.0 * q);
-        let b0 = 1.0;
-        let b1 = -2.0 * Math.cos(freq);
-        let b2 = 1.0;
-        let a0 = 1.0 + alpha;
-        let a1 = -2.0 * Math.cos(freq);
-        let a2 = 1.0 - alpha;
+        const freq = 2.0 * Math.PI * frequency / sampleRate;
+        const alpha = Math.sin(freq) / (2.0 * q);
+        const b0 = 1.0;
+        const b1 = -2.0 * Math.cos(freq);
+        const b2 = 1.0;
+        const a0 = 1.0 + alpha;
+        const a1 = -2.0 * Math.cos(freq);
+        const a2 = 1.0 - alpha;
         return BiquadFilter(b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0);
     }
 
