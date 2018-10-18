@@ -18,7 +18,6 @@ export class HomePage implements OnInit {
 		console.log("hello bob");
 		this.globals.zws.start();
 	}
-
 	ngOnInit() {
 		this.globals.zws = new Zws();
 	}

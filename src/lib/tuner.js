@@ -65,19 +65,20 @@ export class Tuner {
 		this.par = par;
 		const canvas = document.getElementById("tuner");
 		this.canvas = canvas;
+		this.ctx = canvas.getContext("2d");
 		this.MAX_FREQ = par.sampleRate * 0.5;
 		this.draggable = null;
 		this.theFrequency = 1000;
 		this.indices = null;
-		this.width = 100;
-		this.height = 100;
-		this.ctx = null;
+		this.width = canvas.width;
+		this.height = canvas.height;
 		this.waterfallData = [];
 		this.scopeData = [];
 		this.tuningRate = 1.0;
 		canvas.setAttribute("tabindex", "1");
 		this.palette = this.makePalette();
 		this.setupEvents(canvas);
+		this.keepGoing = false;
 	}
 
 	/**
@@ -250,7 +251,7 @@ export class Tuner {
 	}
 
 
-	drawWaterfall(data) {
+	drawWaterfall() {
 		const ctx = this.ctx;
 		const width = this.width;
 		const height = this.height;
@@ -261,19 +262,19 @@ export class Tuner {
 
 		// background
 		ctx.fillStyle = "black";
-		ctx.fill(0, 0, width, height);
+		ctx.fillRect(0, 0, width, height);
 
 		// foreground
-		const y = 0;
+		let y = 0;
 		for (let i = 0, len = data.length; i < len ; i++) {
 			const row = data[i];
-			const x = 0;
+			let x = 0;
 			for (let j = 0, rlen = row.length; j < rlen; j++) {
 				const pix = row[j];
 				const p = Math.min(pix, 255);
 				ctx.strokeStyle = palette[p];
 				ctx.moveTo(x, y);
-				ctx.lineTo(x, y + pHeight);
+				ctx.lineTo(x, y + pixHeight);
 				ctx.stroke();
 				x += pixWidth;
 			}
@@ -390,7 +391,7 @@ export class Tuner {
 	 * @param data {Uint8Array}
 	 */
 	redraw() {
-		this.drawWaterfall(data);
+		this.drawWaterfall();
 		// this.drawSpectrum(data);
 		this.drawTuner();
 		this.drawScope();
@@ -403,7 +404,11 @@ export class Tuner {
 	/**
 	 * @param data {Uint8Array}
 	 */
-	update(data) {
+	update() {
+		if (!this.keepGoing) {
+			return;
+		}
+		const data = this.par.audioInput.getFftData();
 		const arr = this.waterfallData;
 		arr.push(data);
 		if (arr.length > WATERFALL_ROWS) {
@@ -413,4 +418,16 @@ export class Tuner {
 			this.redraw();
 		});
 	}
-} // Tuner
+
+	start() {
+		this.keepGoing = true;
+		requestAnimationFrame(() => {
+			this.update();
+		})
+	}
+
+	stop() {
+		this.keepGoing = false;
+	}
+
+}

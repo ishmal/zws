@@ -46,7 +46,7 @@ export class AudioInput {
 	 * @param data number[]
 	 */
 	receive(data) {
-		this.par.receive(data);
+		this.par.receiveAudio(data);
 	}
 
 	/**
@@ -185,7 +185,7 @@ export class WebAudioInput extends AudioInput {
 	 * @return Uint8Array
 	 */
 	getFftData() {
-		let dataArray = new Uint8Array(Constants.BINS);
+		const dataArray = new Uint8Array(Constants.BINS);
 		this.analyser.getByteFrequencyData(dataArray);
 		return dataArray;
 	}
@@ -239,7 +239,7 @@ export class WebAudioInput extends AudioInput {
 	/**
 	 * @return boolean
 	 */
-	open() {
+	start() {
 		if (navigator.getUserMedia) {
 			navigator.getUserMedia({
 					audio: true
@@ -266,7 +266,7 @@ export class WebAudioInput extends AudioInput {
 	/**
 	 * @return boolean
 	 */
-	close() {
+	stop() {
 		this.isRunning = false;
 		if (this.inputNode) {
 			this.inputNode.disconnect();
@@ -274,21 +274,6 @@ export class WebAudioInput extends AudioInput {
 		return true;
 	}
 
-	/**
-	 * @return boolean
-	 */
-	start() {
-		this.isRunning = true;
-		return true;
-	}
-
-	/**
-	 * @return boolean
-	 */
-	stop() {
-		this.isRunning = false;
-		return true;
-	}
 
 }
 

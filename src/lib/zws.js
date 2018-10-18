@@ -30,9 +30,11 @@ export class Zws {
 
 	start() {
 		this.audioInput.start();
+		this.tuner.start();
 	}
 
 	stop() {
+		this.tuner.stop();
 		this.audioInput.stop();
 	}
 
