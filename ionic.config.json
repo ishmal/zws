@@ -1,7 +1,0 @@
-{
-  "name": "Zws",
-  "integrations": {
-    "cordova": {}
-  },
-  "type": "angular"
-}

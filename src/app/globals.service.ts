@@ -1,6 +1,11 @@
 import { Injectable } from '@angular/core';
 
-@Injectable()
+@Injectable({
+  providedIn: 'root'
+})
 export class GlobalsService {
+
+  constructor() { }
+
   zws: any = null;
 }

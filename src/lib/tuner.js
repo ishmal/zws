@@ -147,7 +147,7 @@ export class Tuner {
 			const freq0 = this.frequency;
 			const d = new Draggable(pos);
 			d.drag = (p) => {
-				const dx = p.x - d.pos0.x;
+				let dx = p.x - d.pos0.x;
 				dx *= this.tuningRate; // cool!
 				const freqDiff = this.MAX_FREQ * dx / this.width;
 				this.frequency = freq0 + freqDiff;
