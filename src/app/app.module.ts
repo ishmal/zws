@@ -3,7 +3,12 @@ import { NgModule } from '@angular/core';
 
 import { AppComponent } from './app.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { MatButtonModule, MatTabsModule, MatToolbarModule } from '@angular/material';
+import { 
+	MatButtonModule, 
+	MatIconModule,
+	MatSlideToggleModule, 
+	MatTabsModule, 
+	MatToolbarModule } from '@angular/material';
 import { MainComponent } from './main/main.component';
 import { ConfigComponent } from './config/config.component';
 
@@ -17,6 +22,8 @@ import { ConfigComponent } from './config/config.component';
     BrowserModule,
 	BrowserAnimationsModule,
 	MatButtonModule,
+	MatIconModule,
+	MatSlideToggleModule,
 	MatTabsModule,
 	MatToolbarModule
   ],

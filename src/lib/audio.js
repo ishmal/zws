@@ -205,6 +205,7 @@ export class WebAudioInput extends AudioInput {
 
 		this.analyser = this.actx.createAnalyser();
 		this.analyser.fftSize = Constants.FFT_SIZE * this.decimation;
+		this.analyser.smoothingTimeConstant = 0.1;
 		this.source.connect(this.analyser);
 		this.analyser.connect(this.inputNode);
 		this.inputNode.connect(this.actx.destination);

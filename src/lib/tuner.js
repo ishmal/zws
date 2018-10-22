@@ -72,13 +72,14 @@ export class Tuner {
 		this.indices = null;
 		this.width = canvas.width;
 		this.height = canvas.height;
-		this.waterfallData = [];
 		this.scopeData = [];
 		this.tuningRate = 1.0;
 		canvas.setAttribute("tabindex", "1");
-		this.palette = this.makePalette();
-		this.setupEvents(canvas);
-		this.keepGoing = false;
+		this.makePalette();
+		this.setupBitmap();
+		this.setupEvents();
+		this.interval = null;
+		this.skip = 0;
 	}
 
 	/**
@@ -103,9 +104,10 @@ export class Tuner {
 
 	/**
 	 * Set up interactivity events
-	 * @param {Element} canvas 
 	 */
-	setupEvents(canvas) {
+	setupEvents() {
+
+		const canvas = this.canvas;
 
 		let didDrag = false;
 
@@ -211,23 +213,27 @@ export class Tuner {
 	// ####################################################################
 
 	makePalette() {
-		const palette = [];
 		const red = [0, 255];
 		const green = [0, 255];
-		const blue = [25, 255];
+		const blue = [120, 255];
 		const rdelta = (red[1] - red[0]) / 256;
 		const gdelta = (green[1] - green[0]) / 256;
 		const bdelta = (blue[1] - blue[0]) / 256;
 		let r = red[0];
 		let g = green[0];
 		let b = blue[0];
+		const palette = [];
 		for (let i = 0; i < 256 ; i++) {
-			palette[i] = `rgb(${r},${g},${b})`;
+			palette[i] = [
+				Math.floor(r),
+				Math.floor(g),
+				Math.floor(b)
+			];
 			r += rdelta;
 			g += gdelta;
 			b += bdelta;
 		}
-		return palette;
+		this.palette = palette;
 	}
 
 
@@ -251,36 +257,60 @@ export class Tuner {
 	}
 
 
-	drawWaterfall() {
+    setupBitmap() {
 		const ctx = this.ctx;
 		const width = this.width;
 		const height = this.height;
-		const data = this.waterfallData;
-		const palette = this.palette;
-		const pixHeight = this.height / WATERFALL_ROWS;
-		const pixWidth = this.width / data[0].length;
+        const indices = [];
+        const ratio = width / BINS;
+        for (let i = 0; i < BINS; i++) {
+            indices[i] = Math.floor(i * ratio);
+        }
+        const imgData = ctx.createImageData(width, height);
+        const imgLen = imgData.data.length;
+        const buf8 = imgData.data;
+        for (let i = 0; i < imgLen;) {
+            buf8[i++] = 0;
+            buf8[i++] = 0;
+            buf8[i++] = 0;
+            buf8[i++] = 255;
+        }
+        // imgData.data.set(buf8);
+        ctx.putImageData(imgData, 0, 0);
+    	const rowSize = imgLen / this.height;
+		const lastRow = imgLen - rowSize;
+		this.bitmapData = {
+			buf8,
+			indices,
+			imgData,
+			imgLen,
+			rowSize,
+			lastRow
+		};
+    }
 
-		// background
-		ctx.fillStyle = "black";
-		ctx.fillRect(0, 0, width, height);
+	drawWaterfall(data) {
+		const { buf8, rowSize, imgLen, imgData, indices, lastRow } = this.bitmapData;
+		const ctx = this.ctx;
+        const width = this.width;
+        const palette = this.palette;
 
-		// foreground
-		let y = 0;
-		for (let i = 0, len = data.length; i < len ; i++) {
-			const row = data[i];
-			let x = 0;
-			for (let j = 0, rlen = row.length; j < rlen; j++) {
-				const pix = row[j];
-				const p = Math.min(pix, 255);
-				ctx.strokeStyle = palette[p];
-				ctx.moveTo(x, y);
-				ctx.lineTo(x, y + pixHeight);
-				ctx.stroke();
-				x += pixWidth;
-			}
-			y += pixHeight;
-		}
-	}
+		// this scrolls up one row
+        buf8.set(buf8.subarray(rowSize, imgLen));
+
+		// updata the bottom row
+        let idx = lastRow;
+        for (let x = 0; x < width; x++) {
+            const v = data[indices[x]];
+            const pix = palette[v];
+            buf8[idx++] = pix[0];
+            buf8[idx++] = pix[1];
+            buf8[idx++] = pix[2];
+            buf8[idx++] = 255;
+        }
+        imgData.data.set(buf8);
+        ctx.putImageData(imgData, 0, 0);
+    }
 
 
 	drawTuner() {
@@ -293,13 +323,13 @@ export class Tuner {
 		const pixPerHz = 1 / MAX_FREQ * width;
 
 		let x = frequency * pixPerHz;
-		const bw = this.par.bandwidth;
+		const bw = 32;  // this.par.bandwidth;
 		const bww = bw * pixPerHz;
 		const bwlo = (frequency - bw * 0.5) * pixPerHz;
 
 		ctx.fillStyle = "rgba(255,255,255,0.25)";
 		ctx.fillRect(bwlo, 0, bww, height);
-		ctx.strokeStyle = "red";
+		ctx.strokeStyle = "rgb(255,64,64)";
 		ctx.beginPath();
 		ctx.moveTo(x, 0);
 		ctx.lineTo(x, height);
@@ -390,8 +420,8 @@ export class Tuner {
 	/**
 	 * @param data {Uint8Array}
 	 */
-	redraw() {
-		this.drawWaterfall();
+	redraw(data) {
+		this.drawWaterfall(data);
 		// this.drawSpectrum(data);
 		this.drawTuner();
 		this.drawScope();
@@ -405,29 +435,24 @@ export class Tuner {
 	 * @param data {Uint8Array}
 	 */
 	update() {
-		if (!this.keepGoing) {
+		if (!this.interval) {
 			return;
 		}
 		const data = this.par.audioInput.getFftData();
-		const arr = this.waterfallData;
-		arr.push(data);
-		if (arr.length > WATERFALL_ROWS) {
-			arr.shift();
-		}
 		requestAnimationFrame(() => {
-			this.redraw();
+			this.redraw(data);
 		});
 	}
 
 	start() {
-		this.keepGoing = true;
-		requestAnimationFrame(() => {
+		this.interval = setInterval(() => {
 			this.update();
-		})
+		}, 100);
 	}
 
 	stop() {
-		this.keepGoing = false;
+		clearInterval(this.interval);
+		this.interval = null;
 	}
 
 }
