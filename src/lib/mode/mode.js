@@ -197,38 +197,55 @@ export class Mode {
 	// # T R A N S M I T
 	// #######################
 
-	/**
-	 * @return {boolean}
-	 */
-	txStart() {
-		return true;
+	trannmitClear() {		
+		this.trasmitData = [];
+		this.cursor = 0;
+	}
+
+	sendText(text) {
+		const bytes = [];
+		for (let i = 0, len = text.length ; i < len ; i++) {
+			bytes[i] = text.charCodeAt(i);
+		}
+		this.sendBytes(bytes);
+
+	}
+
+	sendBytes(bytes) {
+		this.trasmitData = this.transmitData.concat(bytes);
+	}
+
+	getTransmitData(amount) {
+		const cursor = this.cursor;
+		const data = this.transmitData || [];
+		const len = data.length;
+		if (cursor >= len) {
+			this.trasmitClear();
+			return null;
+		}
+		const end = Math.min(len, cursor + amount);
+		const chunk = data.slice(cursor, end);
+		this.cursor = end;
+		return chunk;
 	}
 
 	/**
-	 * @return {boolean}
-	 */
-	txStop() {
-		return true;
-	}
-
-	/**
+	 * @Override this for each mode.  As long as data is available,
+	 * transmit.  If none and the mode has an idle signal, transmit
+	 * that.  Else return null.
 	 * @return {number[]}
 	 */
-	getTransmitData() {
-		let abs = Math.hypot;
-		let baseBand = this.getBasebandData();
-		let xs = this.txNco.mixBuf(baseBand);
+	transmit() {
+		return null;
+	} 
+
+	transmitSignal() {
+		const baseBand = this.transmit();
+		if (!baseband) {
+			return null;
+		}
+		const xs = this.txNco.mixBuf(baseBand);
 		return xs;
-	}
-
-	/**
-	 * Override this for each mode
-	 * Retrieve a buffer of baseband-modlated data
-	 * (or idle tones) from each band
-	 * @return {number[]}
-	 */
-	getBasebandData() {
-		return this.cwBuffer; //default to cw tone
 	}
 
 }
